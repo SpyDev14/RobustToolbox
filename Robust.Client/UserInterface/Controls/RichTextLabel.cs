@@ -13,7 +13,7 @@ using Robust.Shared.ViewVariables;
 namespace Robust.Client.UserInterface.Controls
 {
     [Virtual]
-    public partial class RichTextLabel : Control
+    public partial class RichTextLabel : BaseLabel
     {
         [Dependency] private MarkupTagManager _tagManager = default!;
 
@@ -82,10 +82,9 @@ namespace Robust.Client.UserInterface.Controls
         public IEnumerable<Control> Controls => _entry?.Controls?.Values ?? Enumerable.Empty<Control>();
         public IReadOnlyList<MarkupNode> Nodes => _entry?.Message.Nodes ?? Array.Empty<MarkupNode>();
 
-        public RichTextLabel()
+        public RichTextLabel() : base()
         {
             IoCManager.InjectDependencies(this);
-            VerticalAlignment = VAlignment.Center;
         }
 
         /// <summary>

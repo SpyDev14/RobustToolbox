@@ -1,0 +1,63 @@
+<!--
+    Nested from `Control` instead `BoxContainer` has sence:
+    we forbid to change root box params in XAML client-code.
+    (i wrtite it because i changed parent to BoxContainer and
+    revert it)
+-->
+<Control xmlns="https://spacestation14.io">
+    <!-- Root -->
+    <BoxContainer Orientation="Vertical"
+                  StyleClasses="color-selector-sliders-root-box">
+        <!-- Header -->
+        <BoxContainer StyleClasses="color-selector-sliders-header-box">
+            <OptionButton Name="TypeSelector"/>
+            <Label Name="ColorDescriptionLabel"/>
+        </BoxContainer>
+
+        <!-- Body -->
+        <BoxContainer Orientation="Vertical"
+                      StyleClasses="color-selector-sliders-body-box">
+            <BoxContainer StyleClasses="color-selector-sliders-slider-row">
+                <Label Name="TopSliderLabel"/>
+                <ColorableSlider Name="TopSlider"
+                                 HorizontalExpand="True"
+                                 VerticalAlignment="Center"/>
+                <SpinBox Name="TopSliderInput"/>
+            </BoxContainer>
+
+            <BoxContainer StyleClasses="color-selector-sliders-slider-row">
+                <Label Name="MiddleSliderLabel"/>
+                <ColorableSlider Name="MiddleSlider"
+                                 HorizontalExpand="True"
+                                 VerticalAlignment="Center"/>
+                <SpinBox Name="MiddleSliderInput"/>
+            </BoxContainer>
+
+            <BoxContainer StyleClasses="color-selector-sliders-slider-row">
+                <Label Name="BottomSliderLabel"/>
+                <ColorableSlider Name="BottomSlider"
+                                 HorizontalExpand="True"
+                                 VerticalAlignment="Center"/>
+                <SpinBox Name="BottomSliderInput"/>
+            </BoxContainer>
+
+            <BoxContainer Name="AlphaSliderBox"
+                          StyleClasses="color-selector-sliders-slider-row"
+                          Visible="False">
+                <Label Text="{Loc color-selector-sliders-alpha}"/>
+                <Slider Name="AlphaSlider"
+                        HorizontalExpand="True"
+                        VerticalAlignment="Center"/>
+                <SpinBox Name="AlphaSliderInput"/>
+            </BoxContainer>
+        </BoxContainer>
+
+        <!-- Hex input -->
+        <BoxContainer StyleClasses="hex-input-box">
+            <Label Text="{Loc color-selector-input-hex}"/>
+            <LineEdit Name="HexInput"
+                      HorizontalExpand="True"
+                      VerticalAlignment="Center"/>
+        </BoxContainer>
+    </BoxContainer>
+</Control>
