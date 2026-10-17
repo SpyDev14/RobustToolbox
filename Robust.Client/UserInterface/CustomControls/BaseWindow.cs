@@ -23,6 +23,9 @@ namespace Robust.Client.UserInterface.CustomControls
         private Vector2? _lastParentSize;
 
         public bool Resizable { get; set; } = true;
+#if false
+        public ResizeMode ResizeMode { get; set; } = ResizeMode.All;
+#endif
         public bool IsOpen => Parent != null;
 
         /// <summary>
@@ -365,4 +368,17 @@ namespace Robust.Client.UserInterface.CustomControls
             Right = 1 << 4,
         }
     }
+#if false
+    [Flags]
+    public enum ResizeMode : byte
+    {
+        Left = 0,
+        Right = 1,
+        Top = 1 << 1,
+        Bottom = 1 << 2,
+        Horizontal = Left | Right,
+        Vertical = Top | Bottom,
+        All = Horizontal | Vertical,
+    }
+#endif
 }
