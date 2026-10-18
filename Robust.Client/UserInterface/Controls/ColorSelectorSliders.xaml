@@ -11,7 +11,7 @@
         <!-- Header -->
         <BoxContainer StyleClasses="color-selector-sliders-header-box">
             <OptionButton Name="TypeSelector"/>
-            <Label Name="ColorDescriptionLabel"/>
+            <Label Name="ColorNameLabel"/>
         </BoxContainer>
 
         <!-- Body -->

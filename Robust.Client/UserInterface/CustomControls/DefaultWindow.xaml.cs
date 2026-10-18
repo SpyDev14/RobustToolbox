@@ -58,7 +58,7 @@ namespace Robust.Client.UserInterface.CustomControls
             RobustXamlLoader.Load(this);
             MouseFilter = MouseFilterMode.Stop;
 
-            WindowHeader.MinSize = new Vector2(0, HEADER_SIZE_Y);
+            WindowHeader.MinSize = new Vector2(0, 25);
 
             Contents = ContentsContainer;
 
@@ -104,9 +104,6 @@ namespace Robust.Client.UserInterface.CustomControls
         public Control Contents { get; private set; }
 
         private const int DRAG_MARGIN_SIZE = 7;
-
-        // TODO: Un-hard code this header size.
-        private const float HEADER_SIZE_Y = 25;
         protected virtual Vector2 ContentsMinimumSize => new Vector2(50, 50);
 
         protected override Vector2 MeasureOverride(Vector2 availableSize)
@@ -201,7 +198,7 @@ namespace Robust.Client.UserInterface.CustomControls
                 }
             }
 
-            if (mode == DragMode.None && relativeMousePos.Y < HEADER_SIZE_Y)
+            if (mode == DragMode.None && relativeMousePos.Y < Size.Y)
             {
                 mode = DragMode.Move;
             }
