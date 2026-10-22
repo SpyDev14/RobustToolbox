@@ -143,14 +143,14 @@ namespace Robust.Client.UserInterface.Controls
         private int CalculateLinesCount()
         {
             int i = 0;
-            foreach (var _ in _textMemory.Span.EnumerateLines())
+            foreach (var _ in _textToDrawing.Value.Span.EnumerateLines())
                 i++;
             return i;
         }
 
         /// <summary><b>DO NOT READ / WRITE THIS</b></summary>
         /// <remarks>It is for <see cref="CalculateDrawingTextSizes"/> only.</remarks>
-        private List<int>? _longLiveLineWidthsContainer;
+        private List<int>? _longLiveLineWidthsList;
 
         /// <summary><b>DO NOT TOUCH THIS</b></summary>
         /// <remarks>It is for <see cref="CalculateDrawingTextSizes"/> only.</remarks>
@@ -162,7 +162,8 @@ namespace Robust.Client.UserInterface.Controls
             if (_textToDrawing.Value.Length == 0)
                 return (0, 0, _emptyLabelLineWidths);
 
-            List<int> lineWidths = _longLiveLineWidthsContainer ??= new List<int>(_linesCount.Value);
+            _longLiveLineWidthsList?.Clear();
+            var lineWidths = _longLiveLineWidthsList ??= new (_linesCount.Value);
             var totalHeight = 0;
             var font = _font.Value;
 
@@ -441,22 +442,14 @@ namespace Robust.Client.UserInterface.Controls
             if (_textToDrawing.Value.Length == 0)
                 return;
 
-            int vOffset;
             int totalHeight = _drawingSizes.Value.totalHeight;
-            switch (VAlign)
+            int vOffset = VAlign switch
             {
-                case VAlignMode.Top:
-                    vOffset = 0;
-                    break;
-                case VAlignMode.Fill:
-                case VAlignMode.Center:
-                    vOffset = (PixelSize.Y - totalHeight) / 2;
-                    break;
-                case VAlignMode.Bottom:
-                    vOffset = PixelSize.Y - totalHeight;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                VAlignMode.Top => 0,
+                VAlignMode.Fill or
+                VAlignMode.Center => (PixelSize.Y - totalHeight) / 2,
+                VAlignMode.Bottom => PixelSize.Y - totalHeight,
+                _ => throw new ArgumentOutOfRangeException();
             }
 
             var currentLine = 0;
@@ -469,25 +462,15 @@ namespace Robust.Client.UserInterface.Controls
 
             Vector2 calcBaseline()
             {
-                int hOffset = -1;
                 var lineWidths = _drawingSizes.Value.lineWidths;
-                switch (align)
+                int hOffset = align switch
                 {
-                    case AlignMode.Left:
-                        hOffset = 0;
-                        break;
-                    case AlignMode.Center:
-                    case AlignMode.Fill:
-                        hOffset = (PixelSize.X - lineWidths[currentLine]) / 2;
-                        break;
-                    case AlignMode.Right:
-                        hOffset = PixelSize.X - lineWidths[currentLine];
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    AlignMode.Left => 0
+                    AlignMode.Center or
+                    AlignMode.Fill => (PixelSize.X - lineWidths[currentLine]) / 2,
+                    AlignMode.Right => PixelSize.X - lineWidths[currentLine],
+                    _ => throw new ArgumentOutOfRangeException();
                 }
-
-                Debug.Assert(hOffset != -1);
 
                 return new Vector2(hOffset, ascent + lineHeight * currentLine + vOffset);
             }
