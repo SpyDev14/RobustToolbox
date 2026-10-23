@@ -66,14 +66,6 @@ namespace Robust.Client.UserInterface
         // 2. Using Min & Max both is not a conflict: this specifyng
         //    actual Max OR actual Min for Width/Heigth/Size, not actual size
 
-        // Properties to add:
-        // public bool DesiredAsMinWidth { get; set; }
-        // public bool DesiredAsMinHeight { get; set; }
-        // public bool DesiredAsMinSize { get; set; }
-        // public bool DesiredAsMaxWidth { get; set; }
-        // public bool DesiredAsMaxHeight { get; set; }
-        // public bool DesiredAsMaxSize { get; set; }
-
         private const float DefaultStretchRatio = 1;
         private const float DefaultSetSize = float.NaN;
         private const float DefaultMaxSize = float.PositiveInfinity;
@@ -93,6 +85,8 @@ namespace Robust.Client.UserInterface
         private float _setHeight = DefaultSetSize;
         private float _maxWidth = DefaultMaxSize;
         private float _maxHeight = DefaultMaxSize;
+        private bool _minWidthFromContent = false;
+        private bool _minHeightFromContent = false;
 
         private bool _horizontalExpand;
         private bool _verticalExpand;
@@ -473,6 +467,7 @@ namespace Robust.Client.UserInterface
             get => _minWidth;
             set
             {
+                if (value == _minWidth) return;
                 _minWidth = value;
                 SetLayoutStyleProp(LayoutStyleProperties.MinWidth);
                 InvalidateMeasure();
@@ -488,6 +483,7 @@ namespace Robust.Client.UserInterface
             get => _minHeight;
             set
             {
+                if (value == _minHeight) return;
                 _minHeight = value;
                 SetLayoutStyleProp(LayoutStyleProperties.MinHeight);
                 InvalidateMeasure();
@@ -504,6 +500,7 @@ namespace Robust.Client.UserInterface
             get => _setWidth;
             set
             {
+                if (_setWidth == value) return;
                 _setWidth = value;
                 SetLayoutStyleProp(LayoutStyleProperties.SetWidth);
                 InvalidateMeasure();
@@ -520,6 +517,7 @@ namespace Robust.Client.UserInterface
             get => _setHeight;
             set
             {
+                if (value == _setHeight) return;
                 _setHeight = value;
                 SetLayoutStyleProp(LayoutStyleProperties.SetHeight);
                 InvalidateMeasure();
@@ -535,6 +533,7 @@ namespace Robust.Client.UserInterface
             get => _maxWidth;
             set
             {
+                if (value == _maxWidth) return;
                 _maxWidth = value;
                 SetLayoutStyleProp(LayoutStyleProperties.MaxWidth);
                 InvalidateMeasure();
@@ -550,8 +549,98 @@ namespace Robust.Client.UserInterface
             get => _maxHeight;
             set
             {
+                if (value == _maxHeight) return;
                 _maxHeight = value;
                 SetLayoutStyleProp(LayoutStyleProperties.MaxHeight);
+                InvalidateMeasure();
+            }
+        }
+
+        /*
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsFixedSize
+        {
+            get => DesiredAsFixedWidth && DesiredAsFixedHeight;
+            set => DesiredAsFixedWidth = DesiredAsFixedHeight = value;
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsFixedWidth
+        {
+            get => DesiredAsMinWidth && DesiredAsMaxWidth;
+            set => DesiredAsMinWidth = DesiredAsMaxWidth = value;
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsFixedHeight
+        {
+            get => DesiredAsMinHeight && DesiredAsMaxHeight;
+            set => DesiredAsMinHeight = DesiredAsMaxHeight = value;
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMaxSize
+        {
+            get => DesiredAsMaxWidth && DesiredAsMaxHeight;
+            set => DesiredAsMaxWidth = DesiredAsMaxHeight = value;
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMaxWidth
+        {
+            get => _desiredAsMaxWidth;
+            set
+            {
+                if (value == _desiredAsMaxWidth) return;
+                _desiredAsMaxWidth = value;
+                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMaxWidth);
+                InvalidateMeasure();
+            }
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMaxHeight
+        {
+            get => _desiredAsMaxHeight;
+            set
+            {
+                if (value == _desiredAsMaxHeight) return;
+                _desiredAsMaxHeight = value;
+                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMaxHeight);
+                InvalidateMeasure();
+            }
+        }
+        */
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMinSize
+        {
+            get => DesiredAsMinWidth && DesiredAsMinHeight;
+            set => DesiredAsMinWidth = DesiredAsMinHeight = value;
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMinWidth
+        {
+            get => _minWidthFromContent;
+            set
+            {
+                if (value == _minWidthFromContent) return;
+                _minWidthFromContent = value;
+                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMinWidth);
+                InvalidateMeasure();
+            }
+        }
+
+        [ViewVariables(VVAccess.ReadWrite)]
+        public bool DesiredAsMinHeight
+        {
+            get => _minHeightFromContent;
+            set
+            {
+                if (value == _minHeightFromContent) return;
+                _minHeightFromContent = value;
+                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMinHeight);
                 InvalidateMeasure();
             }
         }
@@ -656,6 +745,7 @@ namespace Robust.Client.UserInterface
                 measured.X = SetWidth;
             }
 
+            // "DesiredAs*" does not affect here 
             measured.X = Math.Clamp(measured.X, MinWidth, MaxWidth);
 
             if (!float.IsNaN(SetHeight))
@@ -663,6 +753,7 @@ namespace Robust.Client.UserInterface
                 measured.Y = SetHeight;
             }
 
+            // "DesiredAs*" does not affect here
             measured.Y = Math.Clamp(measured.Y, MinHeight, MaxHeight);
 
             measured = _margin.Inflate(measured);
@@ -794,6 +885,19 @@ namespace Robust.Client.UserInterface
 
             return finalSize;
         }
+
+        // Actual min = desired as min ? MAX(explicit min, desired) : explicit min
+        // Actual max = desired as max ? MIN(explicit max, desired) : explicit max
+        private float GetActualMinWidth(float desiredWidth)
+            => DesiredAsMinWidth ? MathF.Max(MinWidth, desiredWidth) : MinWidth;
+        private float GetActualMinHeight(float desiredHeight)
+            => DesiredAsMinHeight ? MathF.Max(MinHeight, desiredHeight) : MinHeight;
+        /*
+        private float GetActualMaxWidth(float desiredWidth)
+            => DesiredAsMaxWidth ? MathF.Min(MaxWidth, desiredWidth) : MaxWidth;
+        private float GetActualMaxHeight(float desiredHeight)
+            => DesiredAsMaxHeight ? MathF.Min(MaxHeight, desiredHeight) : MaxHeight;
+        */
 
         private static Vector2 ApplySizeConstraints(Control control, Vector2 avail)
         {

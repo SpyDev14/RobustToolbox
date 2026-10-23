@@ -175,7 +175,7 @@ namespace Robust.Client.UserInterface.CustomControls
 
         protected override DragMode GetDragModeFor(Vector2 relativeMousePos)
         {
-            var mode = DragMode.None;
+            var mode = DragMode.Move;
 
             if (Resizable)
             {
@@ -196,11 +196,6 @@ namespace Robust.Client.UserInterface.CustomControls
                 {
                     mode |= DragMode.Right;
                 }
-            }
-
-            if (mode == DragMode.None && relativeMousePos.Y < Size.Y)
-            {
-                mode = DragMode.Move;
             }
 
             return mode;

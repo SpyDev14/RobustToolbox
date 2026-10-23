@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using Robust.Client.Graphics;
 using Robust.Client.UserInterface.Controls;
@@ -73,6 +74,8 @@ namespace Robust.Client.UserInterface.CustomControls
             {
                 DragOffsetTopLeft = args.PointerLocation.Position / UIScale - Position;
                 DragOffsetBottomRight = Position + Size - args.PointerLocation.Position / UIScale;
+
+                Debug.Assert(CurrentDrag.HasFlag(DragMode.Move) == (CurrentDrag == DragMode.Move));
             }
 
             MoveToFront();
@@ -118,32 +121,19 @@ namespace Robust.Client.UserInterface.CustomControls
 
             if (CurrentDrag == DragMode.None)
             {
-                var cursor = CursorShape.Arrow;
-                var previewDragMode = GetDragModeFor(args.RelativePosition);
-                previewDragMode &= ~DragMode.Move;
-
-                switch (previewDragMode)
+                var dragMode = GetDragModeFor(args.RelativePosition);
+                var cursor = (dragMode & ~DragMode.Move) switch
                 {
-                    case DragMode.Top:
-                    case DragMode.Bottom:
-                        cursor = CursorShape.VResize;
-                        break;
-
-                    case DragMode.Left:
-                    case DragMode.Right:
-                        cursor = CursorShape.HResize;
-                        break;
-
-                    case DragMode.Bottom | DragMode.Left:
-                    case DragMode.Top | DragMode.Right:
-                        cursor = CursorShape.NESWResize;
-                        break;
-
-                    case DragMode.Bottom | DragMode.Right:
-                    case DragMode.Top | DragMode.Left:
-                        cursor = CursorShape.NWSEResize;
-                        break;
-                }
+                    DragMode.Top or DragMode.Bottom => CursorShape.VResize, // ↕
+                    DragMode.Left or DragMode.Right => CursorShape.HResize, // ↔
+                    DragMode.Bottom | DragMode.Right
+                    or DragMode.Top | DragMode.Left => CursorShape.NWSEResize, // ↖↘
+                    DragMode.Bottom | DragMode.Left
+                    or DragMode.Top | DragMode.Right => CursorShape.NESWResize, // ↗↙
+                    DragMode.Bottom | DragMode.Right
+                    | DragMode.Top | DragMode.Left => CursorShape.Move, // ↖↗↘↙
+                    _ => CursorShape.Arrow,
+                };
 
                 DefaultCursorShape = cursor;
             }

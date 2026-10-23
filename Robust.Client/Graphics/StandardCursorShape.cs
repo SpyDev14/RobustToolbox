@@ -41,7 +41,7 @@ namespace Robust.Client.Graphics
         HResize,
 
         /// <summary>
-        /// Alias for <see cref="EWResize"/>
+        /// Alias for <see cref="HResize"/>
         /// </summary>
         EWResize = HResize,
 
