@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Robust.Client.UserInterface;
@@ -127,6 +127,11 @@ public partial class Control
         VerticalExpand      = 1 << 9,
         HorizontalAlignment = 1 << 10,
         VerticalAlignment   = 1 << 11,
+
+        // Fuck, add DesiredAs{Min/Max}{Height/Width} AND Padding filling up signed Int16
+        // adding this props require change type to int or ushort (better to ushort because
+        // 2000 controls with int instead short gave 62 MB extra ram)
+
         // @formatter:on
     }
 }

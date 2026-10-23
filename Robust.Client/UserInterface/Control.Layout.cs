@@ -13,6 +13,67 @@ namespace Robust.Client.UserInterface
 
     public partial class Control
     {
+        // TODO: add support effiency min/max size feature:
+        // 1. Desired Width/Height/Size as Min Width/Height/Size
+        // 2. Desired Width/Height/Size as Max Width/Height/Size
+        // 3. Actual min = MAX(Min, Desired Min ?? 0)
+        // 4. Actual max = MIN(Max, Desired Max ?? Max)
+
+        // Use examples for Min:
+        // Explicit min: actual min is 500 (explicit, desired ignored)
+        // <Control MinWidth="500">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Desired as min: actual min is 300 (desired)
+        // <Control DesiredAsMinWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Explicit min < desired: actual min is 300 (desired)
+        // <Control MinWidth="150" DesiredAsMinWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Explicit min > desired: actual min is 500 (explicit)
+        // <Control MinWidth="500" DesiredAsMinWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+
+        // Use examples for Max:
+        // Explicit max: actual max is 500 (explicit, desired ignored)
+        // <Control MaxWidth="500">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Desired as max: actual max is 300 (desired)
+        // <Control DesiredAsMaxWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Explicit max < desired: actual max is 150 (explicit)
+        // <Control MaxWidth="150" DesiredAsMaxWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+        //
+        // Explicit max > desired: actual max is 300 (desired)
+        // <Control MaxWidth="500" DesiredAsMaxWidth="True">
+        //     <Control SetWidth="300"/>
+        // </Control>
+
+        // NOTE:
+        // 1. Size is just Height & Width both (in one property)
+        // 2. Using Min & Max both is not a conflict: this specifyng
+        //    actual Max OR actual Min for Width/Heigth/Size, not actual size
+
+        // Properties to add:
+        // public bool DesiredAsMinWidth { get; set; }
+        // public bool DesiredAsMinHeight { get; set; }
+        // public bool DesiredAsMinSize { get; set; }
+        // public bool DesiredAsMaxWidth { get; set; }
+        // public bool DesiredAsMaxHeight { get; set; }
+        // public bool DesiredAsMaxSize { get; set; }
+
         private const float DefaultStretchRatio = 1;
         private const float DefaultSetSize = float.NaN;
         private const float DefaultMaxSize = float.PositiveInfinity;

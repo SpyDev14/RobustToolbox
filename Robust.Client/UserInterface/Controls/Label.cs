@@ -213,13 +213,8 @@ namespace Robust.Client.UserInterface.Controls
         // Style properties value factories
         private Font GetActualFont()
         {
-            if (FontOverride != null)
-                return FontOverride;
-
-            if (TryGetStyleProperty<Font>(StylePropertyFont, out var font))
-                return font;
-
-            return UserInterfaceManager.ThemeDefaults.LabelFont;
+            return FontOverride ?? StylePropertyDefault(
+                StylePropertyFont, UserInterfaceManager.ThemeDefaults.LabelFont);
         }
 
         private Color GetActualFontColor()
@@ -227,10 +222,7 @@ namespace Robust.Client.UserInterface.Controls
             if (FontColorOverride.HasValue)
                 return FontColorOverride.Value;
 
-            if (TryGetStyleProperty<Color>(StylePropertyFontColor, out var color))
-                return color;
-
-            return Color.White;
+            return StylePropertyDefault(StylePropertyFontColor, Color.White);
         }
 
         private TextOutline? GetActualTextOutline()
@@ -253,10 +245,7 @@ namespace Robust.Client.UserInterface.Controls
             if (TextTransformOverride.HasValue)
                 return TextTransformOverride.Value;
 
-            if (TryGetStyleProperty<TextTransform>(StylePropertyTextTransform, out var value))
-                return value;
-
-            return TextTransform.None;
+            return StylePropertyDefault(StylePropertyTextTransform, TextTransform.None);
         }
 
 
@@ -338,12 +327,9 @@ namespace Robust.Client.UserInterface.Controls
                 if (_alignModeCacheValid)
                     return field;
 
-                if (_alignModeOverride.HasValue)
-                    field = _alignModeOverride.Value;
-                else if (TryGetStyleProperty<AlignMode>(StylePropertyAlignMode, out var value))
-                    field = value;
-                else
-                    field = AlignMode.Left;
+                field = _alignModeOverride.HasValue
+                    ? _alignModeOverride.Value
+                    : StylePropertyDefault(StylePropertyAlignMode, AlignMode.Left);
 
                 _alignModeCacheValid = true;
                 return field;
@@ -449,8 +435,8 @@ namespace Robust.Client.UserInterface.Controls
                 VAlignMode.Fill or
                 VAlignMode.Center => (PixelSize.Y - totalHeight) / 2,
                 VAlignMode.Bottom => PixelSize.Y - totalHeight,
-                _ => throw new ArgumentOutOfRangeException();
-            }
+                _ => throw new ArgumentOutOfRangeException(),
+            };
 
             var currentLine = 0;
             var font = _font.Value;
@@ -465,12 +451,12 @@ namespace Robust.Client.UserInterface.Controls
                 var lineWidths = _drawingSizes.Value.lineWidths;
                 int hOffset = align switch
                 {
-                    AlignMode.Left => 0
+                    AlignMode.Left => 0,
                     AlignMode.Center or
                     AlignMode.Fill => (PixelSize.X - lineWidths[currentLine]) / 2,
                     AlignMode.Right => PixelSize.X - lineWidths[currentLine],
-                    _ => throw new ArgumentOutOfRangeException();
-                }
+                    _ => throw new ArgumentOutOfRangeException(),
+                };
 
                 return new Vector2(hOffset, ascent + lineHeight * currentLine + vOffset);
             }
