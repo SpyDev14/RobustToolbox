@@ -13,58 +13,131 @@ namespace Robust.Client.UserInterface
 
     public partial class Control
     {
-        // TODO: add support effiency min/max size feature:
-        // 1. Desired Width/Height/Size as Min Width/Height/Size
-        // 2. Desired Width/Height/Size as Max Width/Height/Size
-        // 3. Actual min = MAX(Min, Desired Min ?? 0)
-        // 4. Actual max = MIN(Max, Desired Max ?? Max)
+        // Actual min = desired as min ? MAX(explicit min, desired) : explicit min
+        // Actual max = desired as min ? MIN(explicit max, desired) : explicit max
 
-        // Use examples for Min:
-        // Explicit min: actual min is 500 (explicit, desired ignored)
-        // <Control MinWidth="500">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Desired as min: actual min is 300 (desired)
-        // <Control DesiredAsMinWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Explicit min < desired: actual min is 300 (desired)
-        // <Control MinWidth="150" DesiredAsMinWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Explicit min > desired: actual min is 500 (explicit)
-        // <Control MinWidth="500" DesiredAsMinWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
+        // CAN SHRINK works as auto-min by content
+        // CAN GROW works as auto-max by content
+        // FILL - fill available space
 
-        // Use examples for Max:
-        // Explicit max: actual max is 500 (explicit, desired ignored)
-        // <Control MaxWidth="500">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Desired as max: actual max is 300 (desired)
-        // <Control DesiredAsMaxWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Explicit max < desired: actual max is 150 (explicit)
-        // <Control MaxWidth="150" DesiredAsMaxWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
-        //
-        // Explicit max > desired: actual max is 300 (desired)
-        // <Control MaxWidth="500" DesiredAsMaxWidth="True">
-        //     <Control SetWidth="300"/>
-        // </Control>
+        // FILL=True + CAN SHRINK=False + CAN GROW=False <=> FILL=False
 
-        // NOTE:
-        // 1. Size is just Height & Width both (in one property)
-        // 2. Using Min & Max both is not a conflict: this specifyng
-        //    actual Max OR actual Min for Width/Heigth/Size, not actual size
+        // min-content = Measure(0)
+        // content = Measure(available)
+        // max-content = Measure(infinity)
+
+        #region Use cases
+        /* Default case:
+            container width is 500 (content)
+            1 control width is 300 (content)
+            2 control width is 200 (content)
+        <Container>
+            <Control>
+                <Control SetWidth="300" />
+            </Control>
+            <Control>
+                <Control SetWidth="200" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand both:
+            container width is 800 (set)
+            1 control width is 400 (fill -> growed)
+            2 control width is 400 (fill -> growed)
+        <Container SetWidth="800">
+            <Control HorizontalExpand="True">
+                <Control SetWidth="300" />
+            </Control>
+            <Control HorizontalExpand="True">
+                <Control SetWidth="200" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand first only:
+            container width is 800 (set)
+            1 control width is 600 (fill -> growed)
+            2 control width is 200 (by content)
+        <Container SetWidth="800">
+            <Control FILL="True">
+                <Control SetWidth="300" />
+            </Control>
+            <Control>
+                <Control SetWidth="200" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand both, but container too small:
+            container width is 400 (set)
+            1 control width is 200 (fill -> shrinked)
+            2 control width is 200 (fill -> growed)
+        <Container SetWidth="400">
+            <Control FILL="True">
+                <Control SetWidth="250" />
+            </Control>
+            <Control FILL="True">
+                <Control SetWidth="100" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand both, but first can't shrink:
+            container width is 400 (set)
+            1 control width is 250 fill without shrink -> max(fill, by content) -> by content)
+            2 control width is 150 (fill -> growed)
+        <Container SetWidth="400">
+            <Control FILL="True" CAN SHRINK="False">
+                <Control SetWidth="250" />
+            </Control>
+            <Control FILL="True">
+                <Control SetWidth="100" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand both, but first can't shrink, second can't grow:
+            container width is 400 (set)
+            1 control width is 250 (fill without shrink -> max(fill, by content) -> by content)
+            2 control width is 100 (fill without grow -> min(fill, content) -> by content)
+        <Container SetWidth="400">
+            <Control HorizontalExpand="True" CAN SHRINK="False">
+                <Control SetWidth="250" />
+            </Control>
+            <Control HorizontalExpand="True" CAN GROW="False">
+                <Control SetWidth="100" />
+            </Control>
+        </Container>
+        */
+
+        /* Expand both, but container too small, first can't shrink:
+            container width is 300 (set)
+            1 control width is 250 (fill without shrink -> max(fill, content) -> content)
+            2 control width is 50 (fill -> shrink)
+        <Container SetWidth="300">
+            <Control FILL="True" CAN SHRINK="False">
+                <Control SetWidth="250" />
+            </Control>
+            <Control FILL="True">
+                <Control SetWidth="100" />
+            </Control>
+        </Container>
+
+        /* Expand both, but first can't grow:
+            container width is 300 (set)
+            1 control width is 150 (fill without grow -> min(fill, content) -> shrinked)
+            2 control width is 150 (fill -> growed)
+        <Container SetWidth="300">
+            <Control FILL="True" CAN GROW="False">
+                <Control SetWidth="250" />
+            </Control>
+            <Control FILL="True">
+                <Control SetWidth="100" />
+            </Control>
+        </Container>
+        */
+        #endregion
 
         private const float DefaultStretchRatio = 1;
         private const float DefaultSetSize = float.NaN;
@@ -556,95 +629,6 @@ namespace Robust.Client.UserInterface
             }
         }
 
-        /*
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsFixedSize
-        {
-            get => DesiredAsFixedWidth && DesiredAsFixedHeight;
-            set => DesiredAsFixedWidth = DesiredAsFixedHeight = value;
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsFixedWidth
-        {
-            get => DesiredAsMinWidth && DesiredAsMaxWidth;
-            set => DesiredAsMinWidth = DesiredAsMaxWidth = value;
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsFixedHeight
-        {
-            get => DesiredAsMinHeight && DesiredAsMaxHeight;
-            set => DesiredAsMinHeight = DesiredAsMaxHeight = value;
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMaxSize
-        {
-            get => DesiredAsMaxWidth && DesiredAsMaxHeight;
-            set => DesiredAsMaxWidth = DesiredAsMaxHeight = value;
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMaxWidth
-        {
-            get => _desiredAsMaxWidth;
-            set
-            {
-                if (value == _desiredAsMaxWidth) return;
-                _desiredAsMaxWidth = value;
-                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMaxWidth);
-                InvalidateMeasure();
-            }
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMaxHeight
-        {
-            get => _desiredAsMaxHeight;
-            set
-            {
-                if (value == _desiredAsMaxHeight) return;
-                _desiredAsMaxHeight = value;
-                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMaxHeight);
-                InvalidateMeasure();
-            }
-        }
-        */
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMinSize
-        {
-            get => DesiredAsMinWidth && DesiredAsMinHeight;
-            set => DesiredAsMinWidth = DesiredAsMinHeight = value;
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMinWidth
-        {
-            get => _minWidthFromContent;
-            set
-            {
-                if (value == _minWidthFromContent) return;
-                _minWidthFromContent = value;
-                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMinWidth);
-                InvalidateMeasure();
-            }
-        }
-
-        [ViewVariables(VVAccess.ReadWrite)]
-        public bool DesiredAsMinHeight
-        {
-            get => _minHeightFromContent;
-            set
-            {
-                if (value == _minHeightFromContent) return;
-                _minHeightFromContent = value;
-                SetLayoutStyleProp(LayoutStyleProperties.DesiredAsMinHeight);
-                InvalidateMeasure();
-            }
-        }
-
         /// <summary>
         /// Gets the screen coordinates position relative to the control.
         /// </summary>
@@ -745,7 +729,6 @@ namespace Robust.Client.UserInterface
                 measured.X = SetWidth;
             }
 
-            // "DesiredAs*" does not affect here 
             measured.X = Math.Clamp(measured.X, MinWidth, MaxWidth);
 
             if (!float.IsNaN(SetHeight))
@@ -753,7 +736,6 @@ namespace Robust.Client.UserInterface
                 measured.Y = SetHeight;
             }
 
-            // "DesiredAs*" does not affect here
             measured.Y = Math.Clamp(measured.Y, MinHeight, MaxHeight);
 
             measured = _margin.Inflate(measured);
@@ -885,19 +867,6 @@ namespace Robust.Client.UserInterface
 
             return finalSize;
         }
-
-        // Actual min = desired as min ? MAX(explicit min, desired) : explicit min
-        // Actual max = desired as max ? MIN(explicit max, desired) : explicit max
-        private float GetActualMinWidth(float desiredWidth)
-            => DesiredAsMinWidth ? MathF.Max(MinWidth, desiredWidth) : MinWidth;
-        private float GetActualMinHeight(float desiredHeight)
-            => DesiredAsMinHeight ? MathF.Max(MinHeight, desiredHeight) : MinHeight;
-        /*
-        private float GetActualMaxWidth(float desiredWidth)
-            => DesiredAsMaxWidth ? MathF.Min(MaxWidth, desiredWidth) : MaxWidth;
-        private float GetActualMaxHeight(float desiredHeight)
-            => DesiredAsMaxHeight ? MathF.Min(MaxHeight, desiredHeight) : MaxHeight;
-        */
 
         private static Vector2 ApplySizeConstraints(Control control, Vector2 avail)
         {

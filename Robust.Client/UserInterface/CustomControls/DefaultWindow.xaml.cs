@@ -58,11 +58,17 @@ namespace Robust.Client.UserInterface.CustomControls
             RobustXamlLoader.Load(this);
             MouseFilter = MouseFilterMode.Stop;
 
-            WindowHeader.MinSize = new Vector2(0, 25);
-
             Contents = ContentsContainer;
 
-            XamlChildren = new SS14ContentCollection(this);
+            //XamlChildren = new SS14ContentCollection(this);
+            XamlChildren = ContentsContainer.Children;
+            UpdateMinSize();
+        }
+
+        void UpdateMinSize()
+        {
+            MinWidth = MathF.Max(MinWidth, WindowHeader.DesiredSize.X);
+            MinHeight = MathF.Max(MinHeight, WindowHeader.DesiredSize.Y);
         }
 
         public string? HeaderClass
@@ -80,6 +86,7 @@ namespace Robust.Client.UserInterface.CustomControls
                     WindowHeader.AddStyleClass(value);
 
                 _headerClass = value;
+                UpdateMinSize();
             }
         }
 
@@ -98,17 +105,16 @@ namespace Robust.Client.UserInterface.CustomControls
                     TitleLabel.AddStyleClass(value);
 
                 _titleClass = value;
+                UpdateMinSize();
             }
         }
 
         public Control Contents { get; private set; }
 
-        private const int DRAG_MARGIN_SIZE = 7;
         protected virtual Vector2 ContentsMinimumSize => new Vector2(50, 50);
 
         protected override Vector2 MeasureOverride(Vector2 availableSize)
         {
-
             return Vector2.Max(
                 ContentsMinimumSize,
                 base.MeasureOverride(Vector2.Max(availableSize, ContentsMinimumSize)));
@@ -117,7 +123,7 @@ namespace Robust.Client.UserInterface.CustomControls
         public string? Title
         {
             get => TitleLabel.Text;
-            set => TitleLabel.Text = value;
+            set { TitleLabel.Text = value; UpdateMinSize(); }
         }
 
         // Drag resizing and moving code is mostly taken from Godot's WindowDialog.
@@ -173,34 +179,7 @@ namespace Robust.Client.UserInterface.CustomControls
                 LayoutContainer.SetPosition(this, pos);
         }
 
-        protected override DragMode GetDragModeFor(Vector2 relativeMousePos)
-        {
-            var mode = DragMode.Move;
-
-            if (Resizable)
-            {
-                if (relativeMousePos.Y < DRAG_MARGIN_SIZE)
-                {
-                    mode = DragMode.Top;
-                }
-                else if (relativeMousePos.Y > Size.Y - DRAG_MARGIN_SIZE)
-                {
-                    mode = DragMode.Bottom;
-                }
-
-                if (relativeMousePos.X < DRAG_MARGIN_SIZE)
-                {
-                    mode |= DragMode.Left;
-                }
-                else if (relativeMousePos.X > Size.X - DRAG_MARGIN_SIZE)
-                {
-                    mode |= DragMode.Right;
-                }
-            }
-
-            return mode;
-        }
-
+        [Obsolete]
         public sealed class SS14ContentCollection : ICollection<Control>, IReadOnlyCollection<Control>
         {
             private readonly DefaultWindow Owner;

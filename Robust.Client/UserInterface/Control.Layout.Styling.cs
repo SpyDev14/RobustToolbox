@@ -55,16 +55,6 @@ public partial class Control
                 case nameof(Margin):
                     UpdateField(ref _margin, value, LayoutStyleProperties.Margin);
                     break;
-                case nameof(DesiredAsMinWidth):
-                    UpdateField(ref _minWidthFromContent, value, LayoutStyleProperties.DesiredAsMinWidth);
-                    break;
-                case nameof(DesiredAsMinHeight):
-                    UpdateField(ref _minHeightFromContent, value, LayoutStyleProperties.DesiredAsMinHeight);
-                    break;
-                case nameof(DesiredAsMinSize):
-                    UpdateField(ref _minWidthFromContent, value, LayoutStyleProperties.DesiredAsMinWidth);
-                    UpdateField(ref _minHeightFromContent, value, LayoutStyleProperties.DesiredAsMinHeight);
-                    break;
             }
         }
 
@@ -84,8 +74,6 @@ public partial class Control
             ClearField(ref _horizontalAlignment, DefaultHAlignment, LayoutStyleProperties.HorizontalAlignment);
             ClearField(ref _verticalAlignment, DefaultVAlignment, LayoutStyleProperties.VerticalAlignment);
             ClearField(ref _margin, default, LayoutStyleProperties.Margin);
-            ClearField(ref _minWidthFromContent, false, LayoutStyleProperties.DesiredAsMinWidth);
-            ClearField(ref _minHeightFromContent, false, LayoutStyleProperties.DesiredAsMinHeight);
         }
 
         _layoutStyleSheet = propertiesSet;
@@ -139,12 +127,6 @@ public partial class Control
         VerticalExpand      = 1 << 9,
         HorizontalAlignment = 1 << 10,
         VerticalAlignment   = 1 << 11,
-        DesiredAsMinWidth   = 1 << 12,
-        DesiredAsMinHeight  = 1 << 13,
-        /*
-        DesiredAsMaxWidth   = 1 << 14,
-        DesiredAsMaxHeight  = 1 << 15
-        */
         // @formatter:on
     }
 }

@@ -23,10 +23,10 @@ namespace Robust.Client.UserInterface.CustomControls
         private Control? _trackedParent;
         private Vector2? _lastParentSize;
 
+        protected virtual float DragMarginSize => 8;
+
         public bool Resizable { get; set; } = true;
-#if false
-        public ResizeMode ResizeMode { get; set; } = ResizeMode.All;
-#endif
+        public ResizeSides ResizableSides { get; set; } = ResizeSides.All;
         public bool IsOpen => Parent != null;
 
         /// <summary>
@@ -122,16 +122,48 @@ namespace Robust.Client.UserInterface.CustomControls
             if (CurrentDrag == DragMode.None)
             {
                 var dragMode = GetDragModeFor(args.RelativePosition);
-                var cursor = (dragMode & ~DragMode.Move) switch
+                var cursor = (dragMode & ~DragMode.Move, ResizableSides) switch
                 {
-                    DragMode.Top or DragMode.Bottom => CursorShape.VResize, // ↕
-                    DragMode.Left or DragMode.Right => CursorShape.HResize, // ↔
-                    DragMode.Bottom | DragMode.Right
-                    or DragMode.Top | DragMode.Left => CursorShape.NWSEResize, // ↖↘
-                    DragMode.Bottom | DragMode.Left
-                    or DragMode.Top | DragMode.Right => CursorShape.NESWResize, // ↗↙
-                    DragMode.Bottom | DragMode.Right
-                    | DragMode.Top | DragMode.Left => CursorShape.Move, // ↖↗↘↙
+                    // ↕
+                    (DragMode.Top, var s)
+                        when s.HasFlag(ResizeSides.Top) => CursorShape.VResize,
+
+                    // ↕
+                    (DragMode.Bottom, var s)
+                        when s.HasFlag(ResizeSides.Bottom) => CursorShape.VResize,
+
+                    // ↔
+                    (DragMode.Left, var s)
+                        when s.HasFlag(ResizeSides.Left) => CursorShape.HResize,
+
+                    // ↔
+                    (DragMode.Right, var s)
+                        when s.HasFlag(ResizeSides.Right) => CursorShape.HResize,
+
+                    // ↖↘
+                    (DragMode.Bottom | DragMode.Right, var s)
+                        when s.HasFlag(ResizeSides.Bottom) &&
+                             s.HasFlag(ResizeSides.Right) => CursorShape.NWSEResize,
+
+                    // ↖↘
+                    (DragMode.Top | DragMode.Left, var s)
+                        when s.HasFlag(ResizeSides.Top) &&
+                             s.HasFlag(ResizeSides.Left) => CursorShape.NWSEResize,
+
+                    // ↗↙
+                    (DragMode.Bottom | DragMode.Left, var s)
+                        when s.HasFlag(ResizeSides.Bottom) &&
+                             s.HasFlag(ResizeSides.Left) => CursorShape.NESWResize,
+
+                    // ↗↙
+                    (DragMode.Top | DragMode.Right, var s)
+                        when s.HasFlag(ResizeSides.Top) &&
+                             s.HasFlag(ResizeSides.Right) => CursorShape.NESWResize,
+
+                    // All sides: ↖↙↘↗
+                    (DragMode.Top | DragMode.Bottom | DragMode.Left | DragMode.Right, var s)
+                        when s.HasFlag(ResizeSides.All) => CursorShape.Move,
+
                     _ => CursorShape.Arrow,
                 };
 
@@ -149,20 +181,20 @@ namespace Robust.Client.UserInterface.CustomControls
                     bottom = Position.Y + Size.Y;
                 }
 
-                if ((CurrentDrag & DragMode.Top) == DragMode.Top)
+                if (CurrentDrag.HasFlag(DragMode.Top))
                 {
                     top = Math.Min(args.GlobalPosition.Y - DragOffsetTopLeft.Y, Math.Min(bottom, bottom - MinSize.Y));
                 }
-                else if ((CurrentDrag & DragMode.Bottom) == DragMode.Bottom)
+                else if (CurrentDrag.HasFlag(DragMode.Bottom))
                 {
                     bottom = Math.Max(args.GlobalPosition.Y + DragOffsetBottomRight.Y, Math.Max(top, top + MinSize.Y));
                 }
 
-                if ((CurrentDrag & DragMode.Left) == DragMode.Left)
+                if (CurrentDrag.HasFlag(DragMode.Left))
                 {
                     left = Math.Min(args.GlobalPosition.X - DragOffsetTopLeft.X, Math.Min(right, right - MinSize.X));
                 }
-                else if ((CurrentDrag & DragMode.Right) == DragMode.Right)
+                else if (CurrentDrag.HasFlag(DragMode.Right))
                 {
                     right = Math.Max(args.GlobalPosition.X + DragOffsetBottomRight.X, Math.Max(left, left + MinSize.X));
                 }
@@ -295,7 +327,30 @@ namespace Robust.Client.UserInterface.CustomControls
 
         protected virtual DragMode GetDragModeFor(Vector2 relativeMousePos)
         {
-            return DragMode.None;
+            var mode = DragMode.Move;
+
+            if (Resizable)
+            {
+                if (relativeMousePos.Y < DragMarginSize)
+                {
+                    mode = DragMode.Top;
+                }
+                else if (relativeMousePos.Y > Size.Y - DragMarginSize)
+                {
+                    mode = DragMode.Bottom;
+                }
+
+                if (relativeMousePos.X < DragMarginSize)
+                {
+                    mode |= DragMode.Left;
+                }
+                else if (relativeMousePos.X > Size.X - DragMarginSize)
+                {
+                    mode |= DragMode.Right;
+                }
+            }
+
+            return mode;
         }
 
         private void TrackParentResize()
@@ -357,18 +412,17 @@ namespace Robust.Client.UserInterface.CustomControls
             Left = 1 << 3,
             Right = 1 << 4,
         }
+
+        [Flags]
+        public enum ResizeSides : byte
+        {
+            Left = 1,
+            Right = 1 << 1,
+            Top = 1 << 2,
+            Bottom = 1 << 3,
+            Horizontal = Left | Right,
+            Vertical = Top | Bottom,
+            All = Horizontal | Vertical,
+        }
     }
-#if false
-    [Flags]
-    public enum ResizeMode : byte
-    {
-        Left = 0,
-        Right = 1,
-        Top = 1 << 1,
-        Bottom = 1 << 2,
-        Horizontal = Left | Right,
-        Vertical = Top | Bottom,
-        All = Horizontal | Vertical,
-    }
-#endif
 }
