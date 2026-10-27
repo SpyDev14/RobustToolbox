@@ -1,6 +1,11 @@
-﻿using System.Collections;
+using System;
+using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Robust.Shared.ViewVariables;
 
 namespace Robust.Client.UserInterface
@@ -267,16 +272,51 @@ namespace Robust.Client.UserInterface
             }
         }
 
+        /// <summary>
+        /// Override for specify legacy names
+        /// </summary>
+        /// <remarks>
+        /// <b>Example:</b>
+        /// <code>
+        /// protected override <see cref="LegacyNamesForStyleProperties"/> =&gt _legacyNamesForStyleProperties;
+        /// private static readonly IReadOnlyDictionary&ltstring, IReadOnlyList&ltstring&gt&gt _legacyNamesForStyleProperties =
+        /// {
+        ///     { StylePropertyTextAlignMode, [ "alignMode", ]},
+        ///     { StylePropertyBackgroundColor, [ "bg-color", "BgColor" ] },
+        /// };
+        /// </code>
+        /// </remarks>
+        /// <returns></returns>
+        protected virtual IReadOnlyDictionary<string, IReadOnlyList<string>>? LegacyNamesForStyleProperties => null;
+
         public bool TryGetStyleProperty<T>(string param, [MaybeNullWhen(false)] out T value)
         {
-            if (_styleProperties.TryGetValue(param, out var val) && val is T cast)
-            {
-                value = cast;
+            if (tryGetProperty(param, out value))
                 return true;
+
+            // If has legacy names for this property
+            if (LegacyNamesForStyleProperties is { } aliases
+                && aliases.TryGetValue(param, out var legacyNames))
+            {
+                foreach (var legacyName in legacyNames)
+                    if (tryGetProperty(legacyName, out value))
+                        return true;
             }
 
             value = default;
             return false;
+
+            bool tryGetProperty(string param, [MaybeNullWhen(false)] out T value)
+            {
+                if (_styleProperties.TryGetValue(param, out var val) && val is T cast)
+                {
+                    value = cast;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
         }
 
         public T StylePropertyDefault<T>(string param, T defaultValue)
@@ -286,6 +326,7 @@ namespace Robust.Client.UserInterface
 
             return defaultValue;
         }
+
 
         public sealed class StyleClassCollection : ICollection<string>, IReadOnlyCollection<string>
         {
@@ -361,6 +402,65 @@ namespace Robust.Client.UserInterface
             int ICollection<string>.Count => _values.Count;
             public bool IsReadOnly => false;
             int IReadOnlyCollection<string>.Count => _values.Count;
+        }
+
+
+        [AttributeUsage(AttributeTargets.Field)]
+        protected sealed class StylePropertyLegacyNames(params string[] legacyNames) : Attribute
+        {
+            public IReadOnlyList<string> LegacyNames = legacyNames;
+        }
+
+        private static class StylePropLegacyNamesAliasesCache
+        {
+            private static readonly ConditionalWeakTable<
+                Type, FrozenDictionary<string, IReadOnlyList<string>>
+            > _cache = new();
+
+            public static FrozenDictionary<string, IReadOnlyList<string>> Get(
+                [DynamicallyAccessedMembers(
+                    DynamicallyAccessedMemberTypes.PublicFields |
+                    DynamicallyAccessedMemberTypes.NonPublicFields
+                )] Type controlType)
+            {
+                Debug.Assert(controlType.IsSubclassOf(typeof(Control)));
+                return _cache.GetOrAdd(controlType, Build);
+            }
+
+            private static FrozenDictionary<string, IReadOnlyList<string>> Build(Type controlType)
+            {
+                Debug.Assert(controlType.IsSubclassOf(typeof(Control)));
+                var map = new Dictionary<string, IReadOnlyList<string>>();
+
+                var chain = new Stack<Type>();
+                for (var t = controlType; t != typeof(Control).BaseType; t = t.BaseType)
+                {
+                    Debug.Assert(t is not null);
+                    chain.Push(t);
+                }
+
+                while (chain.Count > 0)
+                {
+                    var type = chain.Pop();
+                    foreach (var field in type.GetFields(
+                        BindingFlags.DeclaredOnly | // not from base type
+                        BindingFlags.Static |
+                        BindingFlags.Public)) // all StyleProperty constants is public
+                    {
+                        if (!field.IsLiteral || field.FieldType != typeof(string))
+                            continue;
+
+                        var attr = field.GetCustomAttribute<StylePropertyLegacyNames>();
+                        if (attr is null)
+                            continue;
+
+                        if (field.GetRawConstantValue() is string actualName)
+                            map[actualName] = attr.LegacyNames;
+                    }
+                }
+
+                return map.ToFrozenDictionary();
+            }
         }
     }
 }

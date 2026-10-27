@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -30,10 +31,10 @@ public sealed partial class MarkupTagManager
     }.ToDictionary(x => x.Name.ToLower(), x => x);
 
     /// <summary>
-    /// A list of <see cref="IMarkupTag"/> types that shouldn't be instantiated through reflection
+    /// A list of <see cref="IMarkupTagHandler"/> types that shouldn't be instantiated through reflection
     /// </summary>
-    private readonly List<Type> _engineTypes = new()
-    {
+    private static readonly FrozenSet<Type> _engineTypes =
+    [
         typeof(BoldItalicTag),
         typeof(BoldTag),
         typeof(BulletTag),
@@ -42,7 +43,7 @@ public sealed partial class MarkupTagManager
         typeof(FontTag),
         typeof(HeadingTag),
         typeof(ItalicTag)
-    };
+    ];
 
     public void Initialize()
     {

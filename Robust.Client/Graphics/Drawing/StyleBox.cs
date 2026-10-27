@@ -114,6 +114,20 @@ namespace Robust.Client.Graphics
         }
 
         /// <summary>
+        /// Content margin, in virtual pixels.
+        /// </summary>
+        public Thickness ContentMarginOverride
+        {
+            set
+            {
+                ContentMarginLeftOverride = value.Left;
+                ContentMarginTopOverride = value.Top;
+                ContentMarginRightOverride = value.Right;
+                ContentMarginBottomOverride = value.Bottom;
+            }
+        }
+
+        /// <summary>
         /// Left padding, in virtual pixels.
         /// </summary>
         public float PaddingLeft

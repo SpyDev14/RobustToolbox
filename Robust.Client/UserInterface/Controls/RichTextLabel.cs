@@ -60,7 +60,7 @@ namespace Robust.Client.UserInterface.Controls
         /// no tag whitelist will be set on the rendered message. Do not pass untrusted user input to this!
         /// </para>
         /// </remarks>
-        public string? Text
+        public override string? Text
         {
             get => _entry?.Message.ToMarkup();
             set
