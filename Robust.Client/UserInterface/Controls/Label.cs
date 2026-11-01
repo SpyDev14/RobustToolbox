@@ -48,9 +48,9 @@ namespace Robust.Client.UserInterface.Controls
 
 
         // Cache invalidate "events"
-        protected override void TextChanged()
+        protected override void DisplayedTextChanged()
         {
-            base.TextChanged();
+            base.DisplayedTextChanged();
 
             _textToDrawing.Invalidate();
             _linesCount.Invalidate();
@@ -180,7 +180,7 @@ namespace Robust.Client.UserInterface.Controls
             {
                 _text = value;
                 _textMemory = value.AsMemory();
-                TextChanged();
+                DisplayedTextChanged();
             }
         }
 
@@ -203,7 +203,7 @@ namespace Robust.Client.UserInterface.Controls
             {
                 _text = null;
                 _textMemory = value;
-                TextChanged();
+                DisplayedTextChanged();
             }
         }
 

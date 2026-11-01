@@ -16,14 +16,19 @@ using TerraFX.Interop.Windows;
 namespace Robust.Client.UserInterface.Controls;
 
 
+#pragma warning disable CS0618
 [StylePropertyLegacyNames(StylePropertyAlignMode, "alignMode")]
+[StylePropertyLegacyNames(StylePropertyTextOutline, StylePropertyFontOutline)]
+[StylePropertyLegacyNames(StylePropertyTextOutlineColor, StylePropertyFontOutlineColor)]
+[StylePropertyLegacyNames(StylePropertyTextOutlineThickness, StylePropertyFontOutlineThickness)]
+#pragma warning restore
 public abstract class BaseLabel : Control
 {
     public const string StylePropertyFontColor = "font-color";
     public const string StylePropertyFont = "font";
-    public const string StylePropertyFontOutlineThickness = "font-outline-thickness";
-    public const string StylePropertyFontOutlineColor = "font-outline-color";
-    public const string StylePropertyFontOutline = "font-outline";
+    public const string StylePropertyTextOutline = "text-outline";
+    public const string StylePropertyTextOutlineThickness = "text-outline-thickness";
+    public const string StylePropertyTextOutlineColor = "text-outline-color";
     public const string StylePropertyAlignMode = "text-align";
     public const string StylePropertyTextTransform = "text-transform";
     public const string StylePropertyTextOverflow = "text-overflow";
@@ -31,38 +36,57 @@ public abstract class BaseLabel : Control
     public const string StylePropertyLineClamp = "line-clamp";
     public const string StylePropertyTextWrap = "text-wrap";
 
-    protected readonly Cached<Font> _font;
-    protected readonly Cached<Color> _fontColor;
-    protected readonly Cached<TextOutline?> _textOutline;
-    protected readonly Cached<TextTransformMode> _textTransform;
-    protected readonly Cached<TextOverflowMode> _textOverflow;
-    protected readonly Cached<int> _lineClamp;
-    protected readonly Cached<TextWrapMode> _textWrap;
+    [Obsolete($"Use {nameof(StylePropertyTextOutline)}")]
+    public const string StylePropertyFontOutline = "font-outline";
 
-    private sealed class ManualCache<T> where T: System.Numerics.IComparisonOperators<T, T, bool>
+    [Obsolete($"Use {nameof(StylePropertyTextOutlineThickness)}")]
+    public const string StylePropertyFontOutlineThickness = "font-outline-thickness";
+
+    [Obsolete($"Use {nameof(StylePropertyTextOutlineColor)}")]
+    public const string StylePropertyFontOutlineColor = "font-outline-color";
+
+
+    protected readonly StylePropertyCache<Font> _font;
+    protected readonly StylePropertyCache<Color> _fontColor;
+    // Handled manual
+    protected readonly Cached<TextOutline?> _textOutline;
+    protected readonly StylePropertyCache<TextTransformMode> _textTransform;
+    protected readonly StylePropertyCache<int> _lineClamp;
+    protected readonly StylePropertyCache<TextOverflowMode> _textOverflow;
+    protected readonly StylePropertyCache<TextWrapMode> _textWrap;
+
+    public sealed class StylePropertyCache<T>
     {
-        private Cached<T> _value;
-        private Cached<T> _defaultValue;
-        private T? _overrideValue;
+        private Cached<T> _actualValue;
+        private T? OverrideValue
+        {
+            get => field;
+            set
+            {
+                _actualValue.Invalidate();
+                field = value;
+            }
+        }
 
         public event Action? Invalidated;
 
-        public ManualCache(Func<T> defaultFactory)
+        public StylePropertyCache(Control control, string propertyName, T defaultValue)
         {
-            _defaultValue = new(defaultFactory);
-            _defaultValue.Invalidated += _value.Invalidate;
-
-            _value = new(() =>
-                _overrideValue is not null
-                ? _overrideValue
-                : 
+            _actualValue = new(() => OverrideValue is null
+                ? control.StylePropertyDefault(propertyName, defaultValue)
+                : OverrideValue
             );
+
+            _actualValue.Invalidated += () => { Invalidated?.Invoke(); };
         }
 
-        public T Value => _value.Value;
+        public T Value => _actualValue.Value;
+        public void Invalidate() => _actualValue.Invalidate();
+        public void SetOverride(T value) => OverrideValue = value;
+        public void ClearOverride() => OverrideValue = default;
     }
 
-    private ManualCache<AlignMode> _alignMode;
+    private StylePropertyCache<AlignMode> _alignMode;
 
     // Manual cache
     private AlignMode? _alignModeOverride;
@@ -77,12 +101,56 @@ public abstract class BaseLabel : Control
         VerticalAlignment = VAlignment.Center;
 
         // Style properties cache
+        // @formatter:off
+        _font          = new(this, StylePropertyFont, UserInterfaceManager.ThemeDefaults.LabelFont);
+        _fontColor     = new(this, StylePropertyFontColor,     Color.White);
+        _textTransform = new(this, StylePropertyTextTransform, TextTransformMode.None);
+        _textOverflow  = new(this, StylePropertyTextOverflow,  TextOverflowMode.Elipsis);
+        _lineClamp     = new(this, StylePropertyLineClamp,     0);
+        _textWrap      = new(this, StylePropertyTextWrap,      TextWrapMode.Simple);
+        _alignMode     = new(this, StylePropertyAlignMode,     AlignMode.Left);
+
+        _textTransform.Invalidated += DisplayedTextChanged;
+        _lineClamp.Invalidated     += DisplayedTextChanged;
+        _textWrap.Invalidated      += DisplayedTextChanged;
+        _font.Invalidated          += TextSizeChanged;
+        // @formatter:on
+
+        // Handled manual
+        _textOutline = new(getActualTextOutline);
+
+        TextOutline? getActualTextOutline()
+        {
+            TextOutline? @base = null;
+            if (TryGetStyleProperty<TextOutline>(StylePropertyTextOutline, out var outline))
+                @base = outline;
+
+            Color? colorFromStyleProp = StylePropertyDefault<Color?>(
+                StylePropertyTextOutlineColor,
+                @base.HasValue ? @base.Value.Color : null
+            );
+
+            float? thicknessFromStyleProp = StylePropertyDefault<float?>(
+                StylePropertyTextOutlineThickness,
+                @base.HasValue ? @base.Value.Thickness : null
+            );
+
+            return TextOutline.FromOverrides(
+                OutlineThicknessOverride.HasValue
+                    ? OutlineThicknessOverride.Value
+                    : thicknessFromStyleProp,
+                OutlineColorOverride.HasValue
+                    ? OutlineColorOverride.Value
+                    : colorFromStyleProp
+            );
+        }
+
+        /*
         _font = new(getActualFont);
         _font.Invalidated += TextSizeChanged;
 
         _fontColor = new(getActualFontColor);
 
-        _textOutline = new(getActualTextOutline);
 
         _textTransform = new(getActualTextTransform);
         _textTransform.Invalidated += TextChanged;
@@ -93,8 +161,6 @@ public abstract class BaseLabel : Control
 
         _textWrap = new(getActualTextWrap);
 
-        _alignMode = new(() => AlignMode.Left);
-
 
         // Value factories, needs here only (incapsulated here)
         Font getActualFont() => FontOverride ?? StylePropertyDefault(
@@ -103,15 +169,6 @@ public abstract class BaseLabel : Control
         Color getActualFontColor() => FontColorOverride.HasValue
             ? FontColorOverride.Value
             : StylePropertyDefault(StylePropertyFontColor, Color.White);
-
-        TextOutline? getActualTextOutline() => TextOutline.FromOverrides(
-            OutlineThicknessOverride.HasValue
-                ? OutlineThicknessOverride.Value
-                : StylePropertyDefault<float?>(StylePropertyFontOutlineThickness, null),
-            OutlineColorOverride.HasValue
-                ? OutlineColorOverride.Value
-                : StylePropertyDefault<Color?>(StylePropertyFontOutlineColor, null)
-        );
 
         TextTransformMode getActualTextTransform() => TextTransformOverride.HasValue
             ? TextTransformOverride.Value
@@ -125,6 +182,7 @@ public abstract class BaseLabel : Control
 
         TextWrapMode getActualTextWrap() =>
             StylePropertyDefault(StylePropertyTextWrap, TextWrapMode.Simple);
+        */
     }
 
 
@@ -143,7 +201,7 @@ public abstract class BaseLabel : Control
     /// <remarks>
     /// Call when change <see cref="Text"/>.
     /// </remarks>
-    protected virtual void TextChanged()
+    protected virtual void DisplayedTextChanged()
     {
 
     }

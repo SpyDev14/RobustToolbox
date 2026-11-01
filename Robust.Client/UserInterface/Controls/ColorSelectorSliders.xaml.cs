@@ -74,13 +74,13 @@ public sealed partial class ColorSelectorSliders : Control
     private readonly ColorSelectorStyleBox _middleStyle;
     private readonly ColorSelectorStyleBox _bottomStyle;
 
-    // @formatter disable
+    // @formatter:off
     public const string StyleClassRootBox     = "color-selector-sliders-root-box";
     public const string StyleClassHeaderBox   = "color-selector-sliders-header-box";
     public const string StyleClassBodyBox     = "color-selector-sliders-body-box";
     public const string StyleClassHexInputBox = "color-selector-sliders-hex-input-box";
     public const string StyleClassSliderRow   = "color-selector-sliders-slider-row";
-    // @formatter enable
+    // @formatter:on
 
     public ColorSelectorSliders()
     {
