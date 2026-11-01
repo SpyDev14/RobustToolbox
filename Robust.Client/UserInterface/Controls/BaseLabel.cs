@@ -11,9 +11,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using TerraFX.Interop.Windows;
 
 namespace Robust.Client.UserInterface.Controls;
 
+
+[StylePropertyLegacyNames(StylePropertyAlignMode, "alignMode")]
 public abstract class BaseLabel : Control
 {
     public const string StylePropertyFontColor = "font-color";
@@ -21,7 +24,6 @@ public abstract class BaseLabel : Control
     public const string StylePropertyFontOutlineThickness = "font-outline-thickness";
     public const string StylePropertyFontOutlineColor = "font-outline-color";
     public const string StylePropertyFontOutline = "font-outline";
-    [StylePropertyLegacyNames("alignMode")]
     public const string StylePropertyAlignMode = "text-align";
     public const string StylePropertyTextTransform = "text-transform";
     public const string StylePropertyTextOverflow = "text-overflow";
@@ -36,7 +38,31 @@ public abstract class BaseLabel : Control
     protected readonly Cached<TextOverflowMode> _textOverflow;
     protected readonly Cached<int> _lineClamp;
     protected readonly Cached<TextWrapMode> _textWrap;
-    protected readonly 
+
+    private sealed class ManualCache<T> where T: System.Numerics.IComparisonOperators<T, T, bool>
+    {
+        private Cached<T> _value;
+        private Cached<T> _defaultValue;
+        private T? _overrideValue;
+
+        public event Action? Invalidated;
+
+        public ManualCache(Func<T> defaultFactory)
+        {
+            _defaultValue = new(defaultFactory);
+            _defaultValue.Invalidated += _value.Invalidate;
+
+            _value = new(() =>
+                _overrideValue is not null
+                ? _overrideValue
+                : 
+            );
+        }
+
+        public T Value => _value.Value;
+    }
+
+    private ManualCache<AlignMode> _alignMode;
 
     // Manual cache
     private AlignMode? _alignModeOverride;
@@ -52,14 +78,22 @@ public abstract class BaseLabel : Control
 
         // Style properties cache
         _font = new(getActualFont);
-        _font.Invalidated += (_, _) => TextSizeChanged();
+        _font.Invalidated += TextSizeChanged;
 
         _fontColor = new(getActualFontColor);
 
         _textOutline = new(getActualTextOutline);
 
         _textTransform = new(getActualTextTransform);
-        _textTransform.Invalidated += (_, _) => TextChanged();
+        _textTransform.Invalidated += TextChanged;
+
+        _textOverflow = new(getActualTextOverflow);
+
+        _lineClamp = new(getActualLineClamp);
+
+        _textWrap = new(getActualTextWrap);
+
+        _alignMode = new(() => AlignMode.Left);
 
 
         // Value factories, needs here only (incapsulated here)
@@ -82,6 +116,15 @@ public abstract class BaseLabel : Control
         TextTransformMode getActualTextTransform() => TextTransformOverride.HasValue
             ? TextTransformOverride.Value
             : StylePropertyDefault(StylePropertyTextTransform, TextTransformMode.None);
+
+        TextOverflowMode getActualTextOverflow() =>
+            StylePropertyDefault(StylePropertyTextOverflow, TextOverflowMode.Elipsis);
+
+        int getActualLineClamp() =>
+            StylePropertyDefault(StylePropertyLineClamp, 0);
+
+        TextWrapMode getActualTextWrap() =>
+            StylePropertyDefault(StylePropertyTextWrap, TextWrapMode.Simple);
     }
 
 

@@ -1,4 +1,4 @@
-﻿using Robust.Shared.ViewVariables;
+using Robust.Shared.ViewVariables;
 using static Robust.Client.UserInterface.Controls.Label;
 
 namespace Robust.Client.UserInterface.Controls

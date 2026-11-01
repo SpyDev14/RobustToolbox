@@ -36,8 +36,6 @@ namespace Robust.Client.UserInterface.Controls
         private Cached<int> _linesCount;
 
 
-        // Style properties
-
         public Label() : base()
         {
             _linesCount = new(CalculateLinesCount);
@@ -45,13 +43,15 @@ namespace Robust.Client.UserInterface.Controls
 
             _textToDrawing = new(GetActualTextToDrawing);
 
-            _font.Invalidated += (_, _) => TextSizeChanged();
+            _font.Invalidated += TextSizeChanged;
         }
 
 
         // Cache invalidate "events"
-        private void TextChanged()
+        protected override void TextChanged()
         {
+            base.TextChanged();
+
             _textToDrawing.Invalidate();
             _linesCount.Invalidate();
             TextSizeChanged();

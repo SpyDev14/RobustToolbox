@@ -272,30 +272,13 @@ namespace Robust.Client.UserInterface
             }
         }
 
-        /// <summary>
-        /// Override for specify legacy names
-        /// </summary>
-        /// <remarks>
-        /// <b>Example:</b>
-        /// <code>
-        /// protected override <see cref="LegacyNamesForStyleProperties"/> =&gt _legacyNamesForStyleProperties;
-        /// private static readonly IReadOnlyDictionary&ltstring, IReadOnlyList&ltstring&gt&gt _legacyNamesForStyleProperties =
-        /// {
-        ///     { StylePropertyTextAlignMode, [ "alignMode", ]},
-        ///     { StylePropertyBackgroundColor, [ "bg-color", "BgColor" ] },
-        /// };
-        /// </code>
-        /// </remarks>
-        /// <returns></returns>
-        protected virtual IReadOnlyDictionary<string, IReadOnlyList<string>>? LegacyNamesForStyleProperties => null;
-
         public bool TryGetStyleProperty<T>(string param, [MaybeNullWhen(false)] out T value)
         {
             if (tryGetProperty(param, out value))
                 return true;
 
             // If has legacy names for this property
-            if (LegacyNamesForStyleProperties is { } aliases
+            if (StylePropLegacyNamesCache.Get(GetType()) is { } aliases
                 && aliases.TryGetValue(param, out var legacyNames))
             {
                 foreach (var legacyName in legacyNames)
@@ -406,12 +389,20 @@ namespace Robust.Client.UserInterface
 
 
         [AttributeUsage(AttributeTargets.Field)]
-        protected sealed class StylePropertyLegacyNames(params string[] legacyNames) : Attribute
+        protected sealed class StylePropertyLegacyNames_(params string[] legacyNames) : Attribute
         {
             public IReadOnlyList<string> LegacyNames = legacyNames;
         }
 
-        private static class StylePropLegacyNamesAliasesCache
+        [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
+        protected sealed class StylePropertyLegacyNames(
+            string actualName, params string[] legacyNames) : Attribute
+        {
+            public readonly string ActualName = actualName;
+            public readonly IReadOnlyList<string> LegacyNames = legacyNames;
+        }
+
+        private static class StylePropLegacyNamesCache
         {
             private static readonly ConditionalWeakTable<
                 Type, FrozenDictionary<string, IReadOnlyList<string>>
@@ -419,17 +410,26 @@ namespace Robust.Client.UserInterface
 
             public static FrozenDictionary<string, IReadOnlyList<string>> Get(
                 [DynamicallyAccessedMembers(
-                    DynamicallyAccessedMemberTypes.PublicFields |
-                    DynamicallyAccessedMemberTypes.NonPublicFields
+                    DynamicallyAccessedMemberTypes.PublicFields
                 )] Type controlType)
             {
                 Debug.Assert(controlType.IsSubclassOf(typeof(Control)));
-                return _cache.GetOrAdd(controlType, Build);
+                return _cache.GetOrAdd(controlType, BuildByClassAttr);
             }
 
-            private static FrozenDictionary<string, IReadOnlyList<string>> Build(Type controlType)
+            private static FrozenDictionary<string, IReadOnlyList<string>> BuildByClassAttr(Type controlType)
             {
-                Debug.Assert(controlType.IsSubclassOf(typeof(Control)));
+                var map = new Dictionary<string, IReadOnlyList<string>>();
+
+                var attrs = controlType.GetCustomAttributes<StylePropertyLegacyNames>(inherit: true);
+                foreach (var attr in attrs)
+                    map[attr.ActualName] = attr.LegacyNames;
+
+                return map.ToFrozenDictionary();
+            }
+
+            private static FrozenDictionary<string, IReadOnlyList<string>> BuildByFieldAttr(Type controlType)
+            {
                 var map = new Dictionary<string, IReadOnlyList<string>>();
 
                 var chain = new Stack<Type>();
@@ -450,7 +450,7 @@ namespace Robust.Client.UserInterface
                         if (!field.IsLiteral || field.FieldType != typeof(string))
                             continue;
 
-                        var attr = field.GetCustomAttribute<StylePropertyLegacyNames>();
+                        var attr = field.GetCustomAttribute<StylePropertyLegacyNames_>();
                         if (attr is null)
                             continue;
 

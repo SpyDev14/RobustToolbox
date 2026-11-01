@@ -1,14 +1,12 @@
 using System;
+using System.Diagnostics;
 
 namespace Robust.Shared.Utility.Caching;
 
-/// <summary>
-/// 
-/// </summary>
 /// <remarks>
 /// No thread-safe
 /// </remarks>
-public sealed class Cached<T>
+public struct Cached<T>
 {
     private T _value = default!;
     private bool _cacheIsValid = false;
@@ -19,9 +17,11 @@ public sealed class Cached<T>
     /// when <see cref="Value"/> was actual).
     /// </summary>
     /// <remarks>
-    /// Useful for invalidate dependent cache.
+    /// <para>
+    ///   Useful for invalidate dependent cache.
+    /// </para>
     /// </remarks>
-    public event EventHandler? Invalidated;
+    public event Action? Invalidated;
 
     public Cached(Func<T> factory)
     {
@@ -30,12 +30,15 @@ public sealed class Cached<T>
 
     /// <summary>
     /// Get value lazy. Was refreshed by given factory,
-    /// sif cache was invalidated.
+    /// if cache was invalidated.
     /// </summary>
     public T Value
     {
         get
         {
+            // null for default(T)
+            Debug.Assert(_factory is not null);
+
             if (!_cacheIsValid)
             {
                 _value = _factory();
@@ -52,19 +55,19 @@ public sealed class Cached<T>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Does nothing if already invalidated.
+    ///   Does nothing if already invalidated.
     /// </para>
     /// <para>
-    /// Drop reference to stoled value.
+    ///   Drop reference to stoled value.
     /// </para>
     /// </remarks>
     public void Invalidate()
     {
-        // Already invalidated, avoiding "event storm"
+        // Already invalidated, avoiding event storm
         if (!_cacheIsValid) return;
 
         _cacheIsValid = false;
         _value = default!; // drop reference
-        Invalidated?.Invoke(this, EventArgs.Empty);
+        Invalidated?.Invoke();
     }
 }
