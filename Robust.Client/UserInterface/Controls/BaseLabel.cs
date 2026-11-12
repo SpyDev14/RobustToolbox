@@ -15,15 +15,17 @@ using TerraFX.Interop.Windows;
 
 namespace Robust.Client.UserInterface.Controls;
 
-
+#if false
 #pragma warning disable CS0618
 [StylePropertyLegacyNames(StylePropertyAlignMode, "alignMode")]
 [StylePropertyLegacyNames(StylePropertyTextOutline, StylePropertyFontOutline)]
 [StylePropertyLegacyNames(StylePropertyTextOutlineColor, StylePropertyFontOutlineColor)]
 [StylePropertyLegacyNames(StylePropertyTextOutlineThickness, StylePropertyFontOutlineThickness)]
 #pragma warning restore
+#endif
 public abstract class BaseLabel : Control
 {
+#if false
     public const string StylePropertyFontColor = "font-color";
     public const string StylePropertyFont = "font";
     public const string StylePropertyTextOutline = "text-outline";
@@ -95,11 +97,12 @@ public abstract class BaseLabel : Control
 
     [ViewVariables(VVAccess.ReadWrite)]
     public abstract string? Text { get; set; }
-
+#endif
     public BaseLabel()
     {
         VerticalAlignment = VAlignment.Center;
 
+#if false
         // Style properties cache
         // @formatter:off
         _font          = new(this, StylePropertyFont, UserInterfaceManager.ThemeDefaults.LabelFont);
@@ -183,8 +186,9 @@ public abstract class BaseLabel : Control
         TextWrapMode getActualTextWrap() =>
             StylePropertyDefault(StylePropertyTextWrap, TextWrapMode.Simple);
         */
+#endif
     }
-
+#if false
 
     /// <summary>
     /// Something with affect to drawed text size was changed
@@ -420,6 +424,7 @@ public abstract class BaseLabel : Control
     /// <summary>
     /// 
     /// </summary>
+#endif
     public enum TextTransformMode : byte
     {
         /// <summary>
@@ -439,7 +444,7 @@ public abstract class BaseLabel : Control
 
         /// <summary>
         /// Uppercase the first character of each word, leave the rest as-is.
-        /// Call <see cref="TextTransformModeUtils.ToSentenceCase"/>.
+        /// Call <see cref="TextTransformExtensions.ToSentenceCase"/>.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -453,8 +458,7 @@ public abstract class BaseLabel : Control
 
         /// <summary>
         /// Uppercase the first char of each word, lowercase the rest.
-        /// Call <see cref="TextTransformModeUtils.ToSentenceCase"/>
-        /// with <see cref="TextTransformModeUtils.Opts.Strict"/> = <see langword="true"/>.
+        /// Call <see cref="TextTransformExtensions.ToSentenceCase"/>.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -468,7 +472,7 @@ public abstract class BaseLabel : Control
 
         /// <summary>
         /// Uppercase the first character of each word, leave the rest as-is.
-        /// Call <see cref="TextTransformModeUtils.ToSentenceCase"/>.
+        /// Call <see cref="TextTransformExtensions.ToSentenceCase"/>.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -483,8 +487,7 @@ public abstract class BaseLabel : Control
 
         /// <summary>
         /// First letter of string get upper, others get lower: hello woRLD,ALL rIgHt => Hello world,all right;
-        /// Call <see cref="TextTransformModeUtils.ToSentenceCase"/>
-        /// with <see cref="TextTransformModeUtils.Opts.Strict"/> = <see langword="true"/>.
+        /// Call <see cref="TextTransformExtensions.ToSentenceCase"/>.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -513,9 +516,9 @@ public abstract class BaseLabel : Control
                 TextTransformMode.Upper => text.ToUpper(),
                 TextTransformMode.Lower => text.ToLower(),
                 TextTransformMode.Sentence => text.ToSentenceCase(),
-                TextTransformMode.SentenceStrict => text.ToSentenceCase(new() { Strict = true }),
+                TextTransformMode.SentenceStrict => text.ToSentenceCase(strict: true),
                 TextTransformMode.Title => text.ToTitleCase(),
-                TextTransformMode.TitleStrict => text.ToTitleCase(new () { Strict = true }),
+                TextTransformMode.TitleStrict => text.ToTitleCase(strict: true),
                 _ => throw new ArgumentOutOfRangeException(nameof(mode))
             };
         }

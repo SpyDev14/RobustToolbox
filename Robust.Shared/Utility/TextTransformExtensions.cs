@@ -1,20 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 
 namespace Robust.Shared.Utility;
 
 
-// TODO: choose better name
-public static class TextTransformUtils
+// NOTE: not a "StringExt" because there can be added extensions for
+// other text types
+public static class TextTransformExtensions
 {
-    public struct Opts()
-    {
-        public bool Strict = false;
-        public CultureInfo Culture = CultureInfo.CurrentCulture;
-    }
-
     /// <param name="idx">Index of <see cref="Rune"/> in word.</param>
     private static bool IsWord(Rune rune, int idx)
     {
@@ -45,9 +39,9 @@ public static class TextTransformUtils
     /// </list>
     /// </para>
     /// </remarks>
-    public static string ToTitleCase(this string text, Opts? options = null)
+    public static string ToTitleCase(this string text, bool strict = false, CultureInfo? culture = null)
     {
-        Opts opts = options ?? new();
+        culture ??= CultureInfo.CurrentCulture;
 
         if (text.Length == 0)
             return "";
@@ -71,9 +65,9 @@ public static class TextTransformUtils
             Debug.Assert(isWord == (wordRuneIdx != -1));
 
             if (isWord && wordRuneIdx == 0)
-                sb.AppendRune(Rune.ToUpper(rune, opts.Culture));
-            else if (isWord && opts.Strict)
-                sb.AppendRune(Rune.ToLower(rune, opts.Culture));
+                sb.AppendRune(Rune.ToUpper(rune, culture));
+            else if (isWord && strict)
+                sb.AppendRune(Rune.ToLower(rune, culture));
             else // AppendRune is optimized, but built-in Append faster, i think
                 sb.Append(text, textCharIdx, rune.Utf16SequenceLength);
 
@@ -107,29 +101,29 @@ public static class TextTransformUtils
     /// </list>
     /// </para>
     /// </remarks>
-    public static string ToSentenceCase(this string text, Opts? options = null)
+    public static string ToSentenceCase(this string text, bool strict = false, CultureInfo? culture = null)
     {
-        Opts opts = options ?? new();
+        culture ??= CultureInfo.CurrentCulture;
 
         if (text.Length == 0)
             return "";
 
         var sb = new StringBuilder(text.Length);
         int charsToSkip = 0;
-        Rune firstWordRune = default;
+        Rune firstRuneInWord = default;
         foreach (var rune in text.EnumerateRunes())
         {
             charsToSkip += rune.Utf16SequenceLength;
             if (IsWord(rune, 0))
             {
-                firstWordRune = rune;
+                firstRuneInWord = rune;
                 break;
             }
         }
 
-        sb.AppendRune(Rune.ToUpper(firstWordRune, opts.Culture));
-        if (opts.Strict)
-            sb.Append(text[charsToSkip..].ToUpper(opts.Culture));
+        sb.AppendRune(Rune.ToUpper(firstRuneInWord, culture));
+        if (strict)
+            sb.Append(text[charsToSkip..].ToUpper(culture));
         else
             sb.Append(text, charsToSkip, text.Length - charsToSkip);
 

@@ -60,9 +60,6 @@
       <DependentUpon>RobustMappedStringSerializer.cs</DependentUpon>
     </Compile>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Utility\TextProcessing\" />
-  </ItemGroup>
 
   <Import Project="..\MSBuild\Robust.Properties.targets" />
   <Import Project="..\MSBuild\Robust.CompNetworkGenerator.targets" />

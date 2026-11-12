@@ -19,6 +19,8 @@ using Robust.Shared.Serialization.Manager;
 using Robust.Shared.Threading;
 using Robust.Shared.Timing;
 using Robust.Shared.Toolshed;
+using Robust.Shared.Utility;
+using Robust.Shared.Utility.Search;
 
 namespace Robust.Shared
 {
@@ -50,6 +52,7 @@ namespace Robust.Shared
             deps.Register<HttpClientHolder>();
             deps.Register<RobustMemoryManager>();
             deps.Register<EntityConsoleHost>();
+            deps.Register<ISearchEngineFactory, DefaultSearchEngineFactory>();
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -18,6 +20,14 @@ namespace Robust.Client.UserInterface.Controls
     [Virtual]
     public class Label : BaseLabel
     {
+        public const string StylePropertyFontColor = "font-color";
+        public const string StylePropertyFont = "font";
+        public const string StylePropertyFontOutlineThickness = "font-outline-thickness";
+        public const string StylePropertyFontOutlineColor = "font-outline-color";
+        public const string StylePropertyAlignMode = "alignMode";
+        /// <summary><see cref="TextTransformMode"/></summary>
+        public const string StylePropertyTextTransform = "text-transform";
+
         /// <summary>
         /// Store given text
         /// </summary>
@@ -36,6 +46,16 @@ namespace Robust.Client.UserInterface.Controls
         private Cached<int> _linesCount;
 
 
+        // Style properties
+        private Cached<Font> _font;
+        private Cached<Color> _fontColor;
+        private Cached<TextOutline?> _textOutline;
+        private Cached<TextTransformMode> _textTransform;
+
+        // If you add a new property: add them invalidate to
+        // StylePropertiesChanged method
+
+
         public Label() : base()
         {
             _linesCount = new(CalculateLinesCount);
@@ -43,15 +63,22 @@ namespace Robust.Client.UserInterface.Controls
 
             _textToDrawing = new(GetActualTextToDrawing);
 
-            _font.Invalidated += TextSizeChanged;
+            // Style properties cache
+            _font = new(GetActualFont);
+            _font.Invalidated += () => TextSizeChanged();
+
+            _fontColor = new(GetActualFontColor);
+
+            _textOutline = new(GetActualTextOutline);
+
+            _textTransform = new(GetActualTextTransform);
+            _textTransform.Invalidated += TextChanged;
         }
 
 
         // Cache invalidate "events"
-        protected override void DisplayedTextChanged()
+        private void TextChanged()
         {
-            base.DisplayedTextChanged();
-
             _textToDrawing.Invalidate();
             _linesCount.Invalidate();
             TextSizeChanged();
@@ -152,6 +179,46 @@ namespace Robust.Client.UserInterface.Controls
             return textToDrawing.AsMemory();
         }
 
+
+        // Style properties value factories
+        private Font GetActualFont()
+        {
+            return FontOverride ?? StylePropertyDefault(
+                StylePropertyFont, UserInterfaceManager.ThemeDefaults.LabelFont);
+        }
+
+        private Color GetActualFontColor()
+        {
+            if (FontColorOverride.HasValue)
+                return FontColorOverride.Value;
+
+            return StylePropertyDefault(StylePropertyFontColor, Color.White);
+        }
+
+        private TextOutline? GetActualTextOutline()
+        {
+            var thickness = OutlineThicknessOverride;
+            if (!thickness.HasValue &&
+                TryGetStyleProperty<float>(StylePropertyFontOutlineThickness, out var styleThickness))
+                thickness = styleThickness;
+
+            var color = OutlineColorOverride;
+            if (!color.HasValue &&
+                TryGetStyleProperty<Color>(StylePropertyFontOutlineColor, out var styleColor))
+                color = styleColor;
+
+            return TextOutline.FromOverrides(thickness, color);
+        }
+
+        private TextTransformMode GetActualTextTransform()
+        {
+            if (TextTransformOverride.HasValue)
+                return TextTransformOverride.Value;
+
+            return StylePropertyDefault(StylePropertyTextTransform, TextTransformMode.None);
+        }
+
+
         /// <returns>
         ///     This Label uses <see cref="TextMemory"/>, not <see cref="Text"/>
         /// </returns>
@@ -169,7 +236,7 @@ namespace Robust.Client.UserInterface.Controls
         /// </exception>
         [ViewVariables]
         [Animatable]
-        public override string? Text
+        public string? Text
         {
             get => _text ?? (
                 IsMemoryTextMode()
@@ -180,7 +247,7 @@ namespace Robust.Client.UserInterface.Controls
             {
                 _text = value;
                 _textMemory = value.AsMemory();
-                DisplayedTextChanged();
+                TextChanged();
             }
         }
 
@@ -203,7 +270,7 @@ namespace Robust.Client.UserInterface.Controls
             {
                 _text = null;
                 _textMemory = value;
-                DisplayedTextChanged();
+                TextChanged();
             }
         }
 
@@ -399,6 +466,22 @@ namespace Robust.Client.UserInterface.Controls
                 var advance = font.DrawChar(handle, rune, baseLine, UIScale, actualFontColor);
                 baseLine.X += advance;
             }
+        }
+
+        public enum AlignMode : byte
+        {
+            Left = 0,
+            Center = 1,
+            Right = 2,
+            Fill = 3
+        }
+
+        public enum VAlignMode : byte
+        {
+            Top = 0,
+            Center = 1,
+            Bottom = 2,
+            Fill = 3
         }
 
         protected override Vector2 MeasureOverride(Vector2 availableSize)
